@@ -1,0 +1,22 @@
+diff --git a/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/src/main/java/com/solanamobile/mobilewalletadapter/reactnative/SolanaMobileWalletAdapterModule.kt b/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/src/main/java/com/solanamobile/mobilewalletadapter/reactnative/SolanaMobileWalletAdapterModule.kt
+index d17cdb8..46170e5 100644
+--- a/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/src/main/java/com/solanamobile/mobilewalletadapter/reactnative/SolanaMobileWalletAdapterModule.kt
++++ b/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/src/main/java/com/solanamobile/mobilewalletadapter/reactnative/SolanaMobileWalletAdapterModule.kt
+@@ -174,7 +174,7 @@ class SolanaMobileWalletAdapterModule(reactContext: ReactApplicationContext) :
+     @ReactMethod
+     override fun invoke(method: String, params: ReadableMap?, promise: Promise): Unit =
+         sessionState?.let {
+-            Log.d(TAG, "invoke `$method` with params $params")
++            Log.d(TAG, "invoke `$method`")
+             try {
+                 val result = it.client
+                     .methodCall(method, convertMapToJson(params), CLIENT_TIMEOUT_MS)
+@@ -192,7 +192,7 @@ class SolanaMobileWalletAdapterModule(reactContext: ReactApplicationContext) :
+                     throw e
+                 }
+             } catch (e: Throwable) {
+-                Log.e(TAG, "Failed to invoke `$method` with params $params", e)
++                Log.e(TAG, "Failed to invoke `$method` (${e.javaClass.simpleName})")
+                 promise.reject(e)
+             }
+         } ?: throw NullPointerException(
