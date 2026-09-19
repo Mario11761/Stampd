@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js'
 import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { toByteArray } from 'react-native-quick-base64'
+import { SeekerStatusCard } from '@/src/features/seeker/SeekerStatusCard'
 import { colors } from '@/src/theme/colors'
 import { walletConfig } from './config'
 import { getWalletErrorMessage } from './errors'
@@ -111,6 +112,7 @@ export function WalletControl() {
           </Pressable>
         </View>
         <Text style={styles.sessionHelp}>Disconnect ends this Stampd session.</Text>
+        <SeekerStatusCard key={publicAddress} walletAddress={publicAddress} />
       </View>
     )
   }

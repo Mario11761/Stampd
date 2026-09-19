@@ -6,7 +6,7 @@ onchain concerns do not leak into presentation code:
 - `wallet/` — Solana Mobile Wallet Adapter session and signature flows.
 - `scanner/` — camera permissions and merchant QR parsing.
 - `loyalty/` — stamps, merchant interactions, and passport state.
-- `seeker/` — Seeker Genesis Token verification.
+- `seeker/` — read-only Seeker Genesis Token detection through the dedicated verifier service.
 - `rewards/` — SKR reward eligibility and redemption.
 
 These modules are intentionally not implemented or installed in the initial setup.
