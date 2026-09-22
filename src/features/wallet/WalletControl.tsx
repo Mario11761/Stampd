@@ -1,18 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { transact as mwaTransact, type Web3MobileWallet } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js'
 import { PublicKey } from '@solana/web3.js'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { toByteArray } from 'react-native-quick-base64'
 import { SeekerStatusCard } from '@/src/features/seeker/SeekerStatusCard'
 import { colors } from '@/src/theme/colors'
 import { walletConfig } from './config'
 import { getWalletErrorMessage } from './errors'
+import { requestSiwsChallenge, SiwsApiError, verifySiwsResult } from './siwsApi'
+import { createSiwsAttemptController, type SiwsFlowState } from './siwsAttemptController'
+import { appendDiagnosticBreadcrumb, type SiwsDiagnosticBreadcrumb } from './siwsDiagnostics'
+import { parseSignInResult, type SiwsChallenge, type WalletControlProof } from './siwsTypes'
 
 const LEGACY_WALLET_UI_CACHE_KEY = 'authorization-cache'
 
 type WalletSession = Readonly<{
   publicAddress: string
+  encodedAddress: string
   authToken: string
   walletUriBase: string | null
   identityUri: string
@@ -26,6 +31,56 @@ export function WalletControl() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [showConnectSafety, setShowConnectSafety] = useState(false)
   const [isAuthorizationStateReady, setIsAuthorizationStateReady] = useState(false)
+  const [siwsState, setSiwsState] = useState<SiwsFlowState>({ status: 'idle' })
+  const [walletControlProof, setWalletControlProof] = useState<WalletControlProof | null>(null)
+  const [devDiagnostics, setDevDiagnostics] = useState<readonly SiwsDiagnosticBreadcrumb[]>([])
+  const devDiagnosticsRef = useRef<readonly SiwsDiagnosticBreadcrumb[]>([])
+  const devDiagnosticsMountedRef = useRef(true)
+  const siwsController = useRef<ReturnType<typeof createSiwsAttemptController> | null>(null)
+
+  const clearDevDiagnostics = useCallback(() => {
+    if (!__DEV__) return
+    devDiagnosticsRef.current = []
+    setDevDiagnostics([])
+  }, [])
+
+  const recordDevDiagnostic = useCallback((breadcrumb: SiwsDiagnosticBreadcrumb) => {
+    if (!__DEV__ || !devDiagnosticsMountedRef.current) return
+    const next = appendDiagnosticBreadcrumb(devDiagnosticsRef.current, breadcrumb)
+    devDiagnosticsRef.current = next
+    setDevDiagnostics(next)
+  }, [])
+
+  useEffect(() => {
+    devDiagnosticsMountedRef.current = true
+    const diagnostic = __DEV__ ? recordDevDiagnostic : undefined
+    const controller = createSiwsAttemptController({
+      getCurrentAddress: () => walletSession.current?.publicAddress ?? null,
+      requestChallenge: (address, signal, onDiagnostic) => requestSiwsChallenge(address, signal, { onDiagnostic }),
+      authorize: async (challenge, capturedAddress, onDiagnostic) => {
+        const session = walletSession.current
+        if (session === null || session.publicAddress !== capturedAddress) {
+          throw new SiwsFlowError('WALLET_SESSION_CHANGED')
+        }
+        return authorizeWalletControl(session, challenge, onDiagnostic)
+      },
+      verify: (address, challenge, result, signal, onDiagnostic) =>
+        verifySiwsResult(address, challenge, result, signal, { onDiagnostic }),
+      classifyError: (error) => (isWalletCancellation(error) ? 'cancelled' : 'unable'),
+      getSafeErrorCode,
+      onStateChange: setSiwsState,
+      onProofChange: setWalletControlProof,
+      onDiagnostic: diagnostic,
+      onDiagnosticsReset: __DEV__ ? clearDevDiagnostics : undefined,
+    })
+    siwsController.current = controller
+    return () => {
+      controller.invalidate(false, false)
+      siwsController.current = null
+      devDiagnosticsRef.current = []
+      devDiagnosticsMountedRef.current = false
+    }
+  }, [clearDevDiagnostics, recordDevDiagnostic])
 
   useEffect(() => {
     let isMounted = true
@@ -61,9 +116,13 @@ export function WalletControl() {
 
     setIsConnecting(true)
     setFeedback(null)
+    clearDevDiagnostics()
+    recordDevDiagnostic('IDENTITY_ASSOCIATION_STARTED')
+    recordDevDiagnostic('IDENTITY_ROUTE_GENERIC')
 
     try {
       const authorizationResult = await mwaTransact(async (wallet: Web3MobileWallet) => {
+        recordDevDiagnostic('MWA_SESSION_CONNECTED')
         return wallet.authorize({
           chain: walletConfig.chain,
           identity: walletConfig.identity,
@@ -71,9 +130,12 @@ export function WalletControl() {
       })
       const nextSession = createWalletSession(authorizationResult)
 
+      siwsController.current?.invalidate()
       walletSession.current = nextSession
       setPublicAddress(nextSession.publicAddress)
+      setSiwsState({ status: 'idle' })
     } catch (error: unknown) {
+      recordDevDiagnostic(isWalletCancellation(error) ? 'MWA_CONNECT_CANCELLED' : 'MWA_CONNECT_FAILED_SAFE')
       setFeedback(getWalletErrorMessage(error))
     } finally {
       setIsConnecting(false)
@@ -81,9 +143,11 @@ export function WalletControl() {
   }
 
   const disconnectFromStampd = () => {
+    siwsController.current?.invalidate()
     walletSession.current = null
     setPublicAddress(null)
     setFeedback(null)
+    setSiwsState({ status: 'idle' })
   }
 
   if (publicAddress) {
@@ -113,6 +177,16 @@ export function WalletControl() {
         </View>
         <Text style={styles.sessionHelp}>Disconnect ends this Stampd session.</Text>
         <SeekerStatusCard key={publicAddress} walletAddress={publicAddress} />
+        {__DEV__ && (
+          <WalletControlVerification
+            diagnostics={devDiagnostics}
+            onCancel={() => siwsController.current?.cancelSafety()}
+            onContinue={() => void siwsController.current?.continueVerification()}
+            onStart={() => siwsController.current?.requestVerification()}
+            proof={walletControlProof}
+            state={siwsState}
+          />
+        )}
       </View>
     )
   }
@@ -141,6 +215,7 @@ export function WalletControl() {
         )}
       </Pressable>
       {feedback && <Text style={styles.feedback}>{feedback}</Text>}
+      {__DEV__ && devDiagnostics.length > 0 && <DevelopmentDiagnostics breadcrumbs={devDiagnostics} />}
 
       <Modal
         animationType="slide"
@@ -233,11 +308,174 @@ function createWalletSession(authorizationResult: {
 
   return {
     publicAddress: new PublicKey(toByteArray(encodedAddress)).toBase58(),
+    encodedAddress,
     authToken: authorizationResult.auth_token,
     walletUriBase: validateWalletUriBase(authorizationResult.wallet_uri_base),
     identityUri: walletConfig.identity.uri,
     chain: walletConfig.chain,
   }
+}
+
+async function authorizeWalletControl(
+  session: WalletSession,
+  challenge: SiwsChallenge,
+  onDiagnostic?: (breadcrumb: SiwsDiagnosticBreadcrumb) => void,
+) {
+  const associationConfig = session.walletUriBase === null ? undefined : { baseUri: session.walletUriBase }
+  onDiagnostic?.(session.walletUriBase === null ? 'SIWS_ROUTE_GENERIC' : 'SIWS_ROUTE_ENDPOINT_SPECIFIC')
+  onDiagnostic?.('MWA_AUTHORIZE_STARTED')
+  const authorizationResult = await mwaTransact(async (wallet: Web3MobileWallet) => {
+    return wallet.authorize({
+      chain: walletConfig.chain,
+      identity: walletConfig.identity,
+      addresses: [session.encodedAddress],
+      ...(session.walletUriBase === null ? {} : { auth_token: session.authToken }),
+      sign_in_payload: challenge,
+    })
+  }, associationConfig)
+  onDiagnostic?.('MWA_AUTHORIZE_RETURNED')
+
+  const result = parseSignInResult(
+    authorizationResult.sign_in_result,
+    authorizationResult.accounts,
+    session.publicAddress,
+    onDiagnostic,
+  )
+  if (result === null) {
+    throw new SiwsFlowError('INVALID_SIGN_IN_RESULT')
+  }
+  return result
+}
+
+function WalletControlVerification(props: {
+  state: SiwsFlowState
+  proof: WalletControlProof | null
+  diagnostics: readonly SiwsDiagnosticBreadcrumb[]
+  onStart: () => void
+  onContinue: () => void
+  onCancel: () => void
+}) {
+  const isPending = ['requesting_challenge', 'opening_wallet', 'verifying'].includes(props.state.status)
+  const pendingLabel =
+    props.state.status === 'requesting_challenge'
+      ? 'Requesting Challenge…'
+      : props.state.status === 'opening_wallet'
+        ? 'Opening Wallet / Signing…'
+        : 'Verifying…'
+
+  return (
+    <View style={styles.verificationCard}>
+      {props.proof !== null && props.state.status === 'verified' ? (
+        <>
+          <Text style={styles.verificationTitle}>Wallet Control Verified</Text>
+          <Text style={styles.verificationBody}>Your wallet-control signature was verified by Stampd.</Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.verificationTitle}>
+            {props.state.status === 'unable' ? 'Unable to Verify Wallet Control' : 'Ownership Verification Required'}
+          </Text>
+          <Text style={styles.verificationBody}>
+            {props.state.status === 'cancelled'
+              ? 'Verification was cancelled. You can try again when ready.'
+              : props.state.status === 'unable' && props.state.code === 'CHALLENGE_EXPIRED'
+                ? 'Verification expired. Please try again.'
+                : 'Development diagnostic · Wallet control only · No Seeker status is granted.'}
+          </Text>
+          {props.state.status === 'unable' && props.diagnostics.length > 0 && (
+            <DevelopmentDiagnostics breadcrumbs={props.diagnostics} />
+          )}
+          <Pressable
+            accessibilityRole="button"
+            disabled={isPending}
+            onPress={props.onStart}
+            style={({ pressed }) => [styles.verifyButton, pressed && styles.pressed, isPending && styles.busy]}
+          >
+            {isPending && <ActivityIndicator color={colors.accentInk} size="small" />}
+            <Text style={styles.verifyButtonText}>{isPending ? pendingLabel : 'Verify Wallet Control'}</Text>
+          </Pressable>
+        </>
+      )}
+
+      <Modal
+        animationType="slide"
+        onRequestClose={props.onCancel}
+        statusBarTranslucent
+        transparent
+        visible={props.state.status === 'safety'}
+      >
+        <View style={styles.modalBackdrop}>
+          <View accessibilityViewIsModal style={styles.safetySheet}>
+            <Text style={styles.safetyTitle}>Verify Wallet Control</Text>
+            <Text style={styles.safetyBody}>
+              {
+                'Stampd will ask your wallet to sign a message confirming that you control this public address.\n\nThis is not a transaction.\nNo SOL, tokens, or SKR will be transferred.\nThere is no network fee.\n\nThe verification request expires in five minutes.'
+              }
+            </Text>
+            <View style={styles.safetyActions}>
+              <Pressable
+                accessibilityHint="Requests a challenge and opens the connected wallet for message signing"
+                accessibilityRole="button"
+                onPress={props.onContinue}
+                style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.continueText}>Continue</Text>
+              </Pressable>
+              <Pressable
+                accessibilityHint="Closes this message without contacting the verification service or wallet"
+                accessibilityRole="button"
+                onPress={props.onCancel}
+                style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  )
+}
+
+function DevelopmentDiagnostics(props: { breadcrumbs: readonly SiwsDiagnosticBreadcrumb[] }) {
+  return (
+    <View style={styles.diagnosticCard}>
+      <Text style={styles.diagnosticLabel}>Diagnostic:</Text>
+      <Text selectable style={styles.diagnosticValue}>
+        {props.breadcrumbs.join(' → ')}
+      </Text>
+    </View>
+  )
+}
+
+class SiwsFlowError extends Error {
+  readonly code: string
+
+  constructor(code: string) {
+    super(code)
+    this.name = 'SiwsFlowError'
+    this.code = code
+  }
+}
+
+function isWalletCancellation(error: unknown): boolean {
+  const code = getErrorCode(error)
+  return code === 'ERROR_ASSOCIATION_CANCELLED' || code === 'ERROR_SESSION_CLOSED' || code === -1 || code === -3
+}
+
+function getSafeErrorCode(error: unknown): string {
+  if (error instanceof SiwsApiError || error instanceof SiwsFlowError) {
+    return error.code
+  }
+  const code = getErrorCode(error)
+  return typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : 'WALLET_CONTROL_FAILED'
+}
+
+function getErrorCode(error: unknown): unknown {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined
+  }
+  return (error as { code?: unknown }).code
 }
 
 function validateWalletUriBase(value: unknown): string | null {
@@ -333,6 +571,40 @@ const styles = StyleSheet.create({
   disconnectText: { color: colors.textSoft, fontSize: 11, fontWeight: '800' },
   sessionHelp: { color: colors.muted, fontSize: 10, lineHeight: 15, fontWeight: '600' },
   feedback: { color: colors.textSoft, fontSize: 12, lineHeight: 17, fontWeight: '600' },
+  verificationCard: {
+    alignSelf: 'stretch',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    gap: 8,
+  },
+  verificationTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  verificationBody: { color: colors.muted, fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  diagnosticCard: {
+    alignSelf: 'stretch',
+    padding: 9,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundRaised,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 3,
+  },
+  diagnosticLabel: { color: colors.muted, fontSize: 9, lineHeight: 12, fontWeight: '800' },
+  diagnosticValue: { color: colors.textSoft, fontSize: 9, lineHeight: 13, fontWeight: '700' },
+  verifyButton: {
+    minHeight: 40,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: colors.accent,
+  },
+  verifyButtonText: { color: colors.accentInk, fontSize: 11, fontWeight: '900' },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
