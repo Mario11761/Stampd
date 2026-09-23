@@ -2,10 +2,10 @@ import type { SgtCheckResult } from './types'
 
 export type SgtCheckState =
   | Readonly<{ status: 'idle' }>
-  | Readonly<{ status: 'checking' }>
-  | Readonly<{ status: 'detected' }>
-  | Readonly<{ status: 'not_detected' }>
-  | Readonly<{ status: 'unable' }>
+  | Readonly<{ status: 'checking'; address: string }>
+  | Readonly<{ status: 'detected'; address: string }>
+  | Readonly<{ status: 'not_detected'; address: string }>
+  | Readonly<{ status: 'unable'; address: string }>
 
 type CheckSgt = (walletAddress: string, signal: AbortSignal) => Promise<SgtCheckResult>
 
@@ -41,7 +41,7 @@ export function createSgtRequestController(options: {
     const requestGeneration = generation
     const controller = new AbortController()
     activeController = controller
-    options.onStateChange({ status: 'checking' })
+    options.onStateChange({ status: 'checking', address: walletAddress })
 
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs)
     void options
@@ -50,11 +50,11 @@ export function createSgtRequestController(options: {
         if (generation !== requestGeneration || controller.signal.aborted) {
           return
         }
-        options.onStateChange({ status: result.status })
+        options.onStateChange({ status: result.status, address: walletAddress })
       })
       .catch(() => {
         if (generation === requestGeneration) {
-          options.onStateChange({ status: 'unable' })
+          options.onStateChange({ status: 'unable', address: walletAddress })
         }
       })
       .finally(() => {

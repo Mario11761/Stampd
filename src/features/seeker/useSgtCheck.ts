@@ -5,7 +5,7 @@ import { createSgtRequestController, type SgtCheckState } from './sgtRequestCont
 
 export function useSgtCheck(walletAddress: string | null): SgtCheckState {
   const [state, setState] = useState<SgtCheckState>(() =>
-    walletAddress === null ? { status: 'idle' } : { status: 'checking' },
+    walletAddress === null ? { status: 'idle' } : { status: 'checking', address: walletAddress },
   )
 
   useEffect(() => {

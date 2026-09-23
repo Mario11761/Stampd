@@ -5,7 +5,7 @@
   "scripts": {
     "android": "expo run:android",
     "android:prebuild": "expo prebuild --platform android",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:siws && npm run test:sgt && npm run verify:mwa-logging",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:verified-seeker && npm run test:siws && npm run test:sgt && npm run verify:mwa-logging",
     "dev": "expo start --dev-client",
     "doctor": "npx -y expo-doctor@latest",
     "eas-build-post-install": "npm run verify:mwa-logging",
@@ -19,6 +19,7 @@
     "test:qr": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/features/stamps/__tests__/parseDemoStamp.test.mjs",
     "test:sgt": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/features/seeker/__tests__/*.test.mjs",
     "test:siws": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/features/wallet/__tests__/*.test.mjs",
+    "test:verified-seeker": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/features/verification/__tests__/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "verify:mwa-logging": "node scripts/verify-mwa-sensitive-logging.cjs"
   },

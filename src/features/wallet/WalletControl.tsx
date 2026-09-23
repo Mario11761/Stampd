@@ -2,9 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { transact as mwaTransact, type Web3MobileWallet } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js'
 import { PublicKey } from '@solana/web3.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, AppState, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { toByteArray } from 'react-native-quick-base64'
 import { SeekerStatusCard } from '@/src/features/seeker/SeekerStatusCard'
+import type { SgtCheckState } from '@/src/features/seeker/sgtRequestController'
+import { useSgtCheck } from '@/src/features/seeker/useSgtCheck'
+import { isVerifiedSeeker } from '@/src/features/seeker/verifiedSeeker'
 import { colors } from '@/src/theme/colors'
 import { walletConfig } from './config'
 import { getWalletErrorMessage } from './errors'
@@ -24,15 +27,28 @@ type WalletSession = Readonly<{
   chain: string
 }>
 
+type SessionBoundProof = Readonly<{
+  proof: WalletControlProof
+  sessionEpoch: number
+}>
+
+type ConnectedSessionView = Readonly<{
+  address: string
+  epoch: number
+}>
+
 export function WalletControl() {
   const walletSession = useRef<WalletSession | null>(null)
+  const sessionEpoch = useRef(0)
+  const [connectedSessionView, setConnectedSessionView] = useState<ConnectedSessionView | null>(null)
   const [publicAddress, setPublicAddress] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [showConnectSafety, setShowConnectSafety] = useState(false)
   const [isAuthorizationStateReady, setIsAuthorizationStateReady] = useState(false)
   const [siwsState, setSiwsState] = useState<SiwsFlowState>({ status: 'idle' })
-  const [walletControlProof, setWalletControlProof] = useState<WalletControlProof | null>(null)
+  const [walletControlProof, setWalletControlProof] = useState<SessionBoundProof | null>(null)
+  const [verificationNowMs, setVerificationNowMs] = useState(0)
   const [devDiagnostics, setDevDiagnostics] = useState<readonly SiwsDiagnosticBreadcrumb[]>([])
   const devDiagnosticsRef = useRef<readonly SiwsDiagnosticBreadcrumb[]>([])
   const devDiagnosticsMountedRef = useRef(true)
@@ -69,7 +85,10 @@ export function WalletControl() {
       classifyError: (error) => (isWalletCancellation(error) ? 'cancelled' : 'unable'),
       getSafeErrorCode,
       onStateChange: setSiwsState,
-      onProofChange: setWalletControlProof,
+      onProofChange: (proof) => {
+        setVerificationNowMs(Date.now())
+        setWalletControlProof(proof === null ? null : { proof, sessionEpoch: sessionEpoch.current })
+      },
       onDiagnostic: diagnostic,
       onDiagnosticsReset: __DEV__ ? clearDevDiagnostics : undefined,
     })
@@ -81,6 +100,15 @@ export function WalletControl() {
       devDiagnosticsMountedRef.current = false
     }
   }, [clearDevDiagnostics, recordDevDiagnostic])
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setVerificationNowMs(Date.now())
+      }
+    })
+    return () => subscription.remove()
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -108,6 +136,24 @@ export function WalletControl() {
   }, [])
 
   const isBusy = isConnecting || !isAuthorizationStateReady
+  const connectedAddress = connectedSessionView?.address === publicAddress ? publicAddress : null
+  const sgtState = useSgtCheck(connectedAddress)
+  const visibleSgtState: SgtCheckState =
+    connectedAddress === null
+      ? { status: 'idle' }
+      : sgtState.status !== 'idle' && sgtState.address === connectedAddress
+        ? sgtState
+        : { status: 'checking', address: connectedAddress }
+  const verifiedSeeker = isVerifiedSeeker({
+    connectedAddress,
+    sessionAddress: connectedSessionView?.address ?? null,
+    sessionEpoch: connectedSessionView?.epoch ?? 0,
+    sgtState,
+    siwsState,
+    siwsProof: walletControlProof?.proof ?? null,
+    proofSessionEpoch: walletControlProof?.sessionEpoch ?? null,
+    nowMs: verificationNowMs,
+  })
 
   const connectWallet = async () => {
     if (!isAuthorizationStateReady) {
@@ -130,8 +176,10 @@ export function WalletControl() {
       })
       const nextSession = createWalletSession(authorizationResult)
 
+      sessionEpoch.current += 1
       siwsController.current?.invalidate()
       walletSession.current = nextSession
+      setConnectedSessionView({ address: nextSession.publicAddress, epoch: sessionEpoch.current })
       setPublicAddress(nextSession.publicAddress)
       setSiwsState({ status: 'idle' })
     } catch (error: unknown) {
@@ -143,8 +191,10 @@ export function WalletControl() {
   }
 
   const disconnectFromStampd = () => {
+    sessionEpoch.current += 1
     siwsController.current?.invalidate()
     walletSession.current = null
+    setConnectedSessionView(null)
     setPublicAddress(null)
     setFeedback(null)
     setSiwsState({ status: 'idle' })
@@ -176,16 +226,22 @@ export function WalletControl() {
           </Pressable>
         </View>
         <Text style={styles.sessionHelp}>Disconnect ends this Stampd session.</Text>
-        <SeekerStatusCard key={publicAddress} walletAddress={publicAddress} />
+        <SeekerStatusCard state={visibleSgtState} />
         {__DEV__ && (
           <WalletControlVerification
             diagnostics={devDiagnostics}
             onCancel={() => siwsController.current?.cancelSafety()}
             onContinue={() => void siwsController.current?.continueVerification()}
             onStart={() => siwsController.current?.requestVerification()}
-            proof={walletControlProof}
+            proof={walletControlProof?.proof ?? null}
             state={siwsState}
           />
+        )}
+        {__DEV__ && verifiedSeeker && (
+          <View accessibilityLiveRegion="polite" style={styles.verifiedSeekerCard}>
+            <Text style={styles.verifiedSeekerTitle}>Verified Seeker</Text>
+            <Text style={styles.verifiedSeekerDetail}>SGT and wallet control match this address.</Text>
+          </View>
         )}
       </View>
     )
@@ -582,6 +638,17 @@ const styles = StyleSheet.create({
   },
   verificationTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
   verificationBody: { color: colors.muted, fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  verifiedSeekerCard: {
+    alignSelf: 'stretch',
+    padding: 13,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    backgroundColor: colors.backgroundRaised,
+    gap: 4,
+  },
+  verifiedSeekerTitle: { color: colors.accent, fontSize: 14, lineHeight: 19, fontWeight: '900' },
+  verifiedSeekerDetail: { color: colors.textSoft, fontSize: 11, lineHeight: 16, fontWeight: '600' },
   diagnosticCard: {
     alignSelf: 'stretch',
     padding: 9,

@@ -1,14 +1,13 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 import { colors } from '@/src/theme/colors'
+import type { SgtCheckState } from './sgtRequestController'
 import { getSeekerStatusCopy } from './statusCopy'
-import { useSgtCheck } from './useSgtCheck'
 
 type SeekerStatusCardProps = Readonly<{
-  walletAddress: string
+  state: SgtCheckState
 }>
 
-export function SeekerStatusCard({ walletAddress }: SeekerStatusCardProps) {
-  const state = useSgtCheck(walletAddress)
+export function SeekerStatusCard({ state }: SeekerStatusCardProps) {
   const copy = getSeekerStatusCopy(state)
 
   if (copy === null) {

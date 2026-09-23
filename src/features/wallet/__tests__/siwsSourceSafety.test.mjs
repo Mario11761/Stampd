@@ -24,9 +24,10 @@ test('proof and signing material are not persisted', async () => {
   assert.doesNotMatch(source, /SecureStore|Bearer |JWT/)
 })
 
-test('DEV diagnostic never displays Verified Seeker', async () => {
+test('wallet-control and derived Verified Seeker UI remain development-only', async () => {
   const source = await readFile(walletControlUrl, 'utf8')
-  assert.doesNotMatch(source, />Verified Seeker</)
+  assert.match(source, /__DEV__ && verifiedSeeker &&/)
+  assert.match(source, />Verified Seeker</)
   assert.match(source, />Wallet Control Verified</)
 })
 

@@ -4,10 +4,10 @@ import { getSeekerStatusCopy } from '../statusCopy.ts'
 
 test('uses the approved Stage 5A labels without Verified Seeker', () => {
   const copies = [
-    getSeekerStatusCopy({ status: 'checking' }),
-    getSeekerStatusCopy({ status: 'detected' }),
-    getSeekerStatusCopy({ status: 'not_detected' }),
-    getSeekerStatusCopy({ status: 'unable' }),
+    getSeekerStatusCopy({ status: 'checking', address: 'wallet-one' }),
+    getSeekerStatusCopy({ status: 'detected', address: 'wallet-one' }),
+    getSeekerStatusCopy({ status: 'not_detected', address: 'wallet-one' }),
+    getSeekerStatusCopy({ status: 'unable', address: 'wallet-one' }),
   ]
 
   assert.deepEqual(copies, [
