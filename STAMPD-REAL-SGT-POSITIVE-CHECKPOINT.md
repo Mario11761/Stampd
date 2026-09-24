@@ -37,7 +37,7 @@ The observed wallet address was displayed and recorded only in shortened form. N
 
 ### 1. Official SGT detection — PASS
 
-A real wallet holding an official Seeker Genesis Token was connected to the exact validated APK. Stampd displayed:
+A real wallet holding an official Seeker Genesis Token was connected to the exact validated APK. The wallet was the device's Seed Vault wallet/account, not the Solflare account. Its address was retained only in shortened form. Stampd displayed:
 
 ```text
 SGT Detected

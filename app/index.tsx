@@ -14,13 +14,17 @@ export default function WelcomeScreen() {
 
         <View style={styles.hero}>
           <View style={styles.copy}>
-            <Text style={styles.title}>Your onchain{`\n`}loyalty passport.</Text>
-            <Text style={styles.tagline}>Scan. Sign. Stamp. Earn.</Text>
+            <Text style={styles.title}>A Seeker-native{`\n`}loyalty passport.</Text>
+            <Text style={styles.tagline}>Verify. Scan. Stamp. Unlock eligibility.</Text>
+            <Text style={styles.explanation}>
+              Official SGT + current wallet control creates a Verified Seeker session for local loyalty stamps and demo
+              reward eligibility.
+            </Text>
           </View>
 
           <View style={styles.actions}>
             <Pressable
-              accessibilityHint="Opens your mock loyalty passport"
+              accessibilityHint="Opens your Stampd loyalty passport"
               accessibilityRole="button"
               onPress={() => router.push('/passport')}
               style={({ pressed }) => [styles.enterButton, pressed && styles.enterButtonPressed]}
@@ -73,6 +77,13 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: '600',
     letterSpacing: 0.2,
+  },
+  explanation: {
+    maxWidth: 330,
+    color: colors.textSoft,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   actions: { gap: 23, paddingTop: 48 },
   enterButton: {

@@ -47,14 +47,18 @@ export default function StampSuccessScreen() {
           </View>
 
           <View style={styles.rewardBlock}>
-            <Text style={styles.rewardLabel}>REWARD UNLOCKED</Text>
+            <Text style={styles.rewardLabel}>DEMO ELIGIBILITY UNLOCKED</Text>
             <View style={styles.rewardRow}>
               <Text style={styles.rewardAmount}>20</Text>
               <Text style={styles.rewardCurrency}>SKR</Text>
             </View>
+            <Text style={styles.rewardQualifier}>DEMO REWARD TARGET</Text>
             <View style={styles.readyBadge}>
-              <Text style={styles.readyText}>Reward Ready</Text>
+              <Text style={styles.readyText}>Eligibility Ready · Demo</Text>
             </View>
+            <Text style={styles.rewardDisclaimer}>
+              Demo reward eligibility only. No SKR has been transferred or claimed.
+            </Text>
           </View>
         </View>
 
@@ -69,7 +73,7 @@ export default function StampSuccessScreen() {
             }
             style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryButtonText}>View Reward</Text>
+            <Text style={styles.primaryButtonText}>View Eligibility</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -142,6 +146,7 @@ const styles = StyleSheet.create({
   rewardRow: { marginTop: 2, flexDirection: 'row', alignItems: 'baseline', gap: 7 },
   rewardAmount: { color: colors.text, fontSize: 46, lineHeight: 53, fontWeight: '900', letterSpacing: -1.7 },
   rewardCurrency: { color: colors.accent, fontSize: 17, fontWeight: '900' },
+  rewardQualifier: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   readyBadge: {
     minHeight: 29,
     marginTop: 7,
@@ -152,6 +157,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   readyText: { color: colors.accentInk, fontSize: 11, fontWeight: '900' },
+  rewardDisclaimer: {
+    maxWidth: 270,
+    marginTop: 11,
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   actions: { marginTop: 15, gap: 10 },
   primaryButton: {
     minHeight: 55,

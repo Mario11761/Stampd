@@ -5,7 +5,7 @@ import { BrandMark } from '@/src/components/BrandMark'
 import { LoyaltyCard } from '@/src/components/LoyaltyCard'
 import { ProductShell } from '@/src/components/ProductShell'
 import { StatCard } from '@/src/components/StatCard'
-import { getSeekerCoffee, mockUser, pixelCards } from '@/src/data/mockLoyalty'
+import { getDemoPassportStats, getSeekerCoffee, mockUser, pixelCards } from '@/src/data/mockLoyalty'
 import { useDemoLoyalty } from '@/src/features/stamps/DemoLoyaltyContext'
 import { WalletControl } from '@/src/features/wallet/WalletControl'
 import { colors } from '@/src/theme/colors'
@@ -14,7 +14,7 @@ export default function PassportScreen() {
   const { isDemoStampCollected, resetDemoStamp } = useDemoLoyalty()
   const [resetMessage, setResetMessage] = useState<string | null>(null)
   const seekerCoffee = getSeekerCoffee(isDemoStampCollected)
-  const totalStamps = mockUser.stats.stamps + (isDemoStampCollected ? 1 : 0)
+  const stats = getDemoPassportStats(isDemoStampCollected)
 
   const handleDemoReset = async () => {
     const result = await resetDemoStamp()
@@ -30,15 +30,21 @@ export default function PassportScreen() {
           <Text style={styles.greeting}>{mockUser.greeting}</Text>
           <View style={styles.passportRow}>
             <Text style={styles.title}>{mockUser.passportName}</Text>
+            <Text style={styles.verifiedExplanation}>
+              Official SGT + current wallet control = a Verified Seeker session.
+            </Text>
             <WalletControl />
           </View>
         </View>
 
         <View style={styles.stats}>
-          <StatCard label="Stamps" value={totalStamps} />
-          <StatCard label="Places" value={mockUser.stats.places} />
-          <StatCard label="SKR Earned" value={mockUser.stats.skrEarned} />
+          <StatCard label="Stamps" value={stats.stamps} />
+          <StatCard label="Places" value={stats.places} />
+          <StatCard label="Eligible Programs" value={stats.eligibilityReady} />
         </View>
+        <Text style={styles.rewardDisclaimer}>
+          Demo reward eligibility only. No SKR has been transferred or claimed.
+        </Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>MY PASSPORT</Text>
@@ -84,7 +90,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -1.3,
   },
+  verifiedExplanation: { color: colors.textSoft, fontSize: 12, lineHeight: 18, fontWeight: '600' },
   stats: { marginTop: 27, flexDirection: 'row', gap: 9 },
+  rewardDisclaimer: { marginTop: 11, color: colors.muted, fontSize: 11, lineHeight: 16, fontWeight: '600' },
   section: { marginTop: 35, gap: 14 },
   sectionLabel: { color: colors.muted, fontSize: 11, fontWeight: '900', letterSpacing: 1.8 },
   resetButton: {

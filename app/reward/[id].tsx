@@ -18,14 +18,14 @@ export default function RewardDetailScreen() {
       <View pointerEvents="none" style={styles.glow} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable
-          accessibilityLabel="Back to passport"
+          accessibilityLabel="Back"
           accessibilityRole="button"
           hitSlop={12}
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
           <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backLabel}>Passport</Text>
+          <Text style={styles.backLabel}>Back</Text>
         </Pressable>
 
         <View style={styles.header}>
@@ -37,7 +37,7 @@ export default function RewardDetailScreen() {
         </View>
 
         <View style={styles.rewardPanel}>
-          <Text style={styles.panelLabel}>REWARD DETAILS</Text>
+          <Text style={styles.panelLabel}>DEMO REWARD TARGET</Text>
           <View style={styles.rewardValueRow}>
             <Text style={styles.rewardAmount}>{merchant.reward.amount}</Text>
             <Text style={styles.rewardCurrency}>{merchant.reward.currency}</Text>
@@ -45,7 +45,7 @@ export default function RewardDetailScreen() {
           <View style={[styles.statusBadge, isReady && styles.statusBadgeReady]}>
             <View style={[styles.statusDot, isReady && styles.statusDotReady]} />
             <Text style={[styles.statusText, isReady && styles.statusTextReady]}>
-              {isReady ? 'Reward Ready' : 'Locked / Not Ready'}
+              {isReady ? 'Eligibility Ready · Demo' : 'Eligibility Locked · Demo'}
             </Text>
           </View>
 
@@ -57,16 +57,16 @@ export default function RewardDetailScreen() {
         <View style={styles.detailsCard}>
           <DetailRow label="Program" value={merchant.name} />
           <DetailRow label="Requirement" value={`${merchant.stamps.total} / ${merchant.stamps.total} stamps`} />
-          <DetailRow label="Reward" value={`${merchant.reward.amount} ${merchant.reward.currency}`} />
-          <DetailRow label="Status" value={isReady ? 'Ready' : 'Locked / Not Ready'} last />
+          <DetailRow label="Demo target" value={`${merchant.reward.amount} ${merchant.reward.currency}`} />
+          <DetailRow label="Status" value={isReady ? 'Eligibility Ready · Demo' : 'Eligibility Locked · Demo'} last />
         </View>
 
         <View style={styles.note}>
           <Text style={styles.noteLabel}>LOCAL DEMO</Text>
           <Text style={styles.noteText}>
             {isReady
-              ? 'Your reward is ready. No claim or token transfer is available in Stage 4.'
-              : 'Collect the final local demo stamp to make this reward ready.'}
+              ? 'Your local demo eligibility is complete. No SKR has been transferred or claimed.'
+              : 'Collect the remaining local demo stamps to complete eligibility. No SKR has been transferred or claimed.'}
           </Text>
         </View>
       </ScrollView>

@@ -15,13 +15,8 @@ export type LoyaltyMerchant = {
 }
 
 export const mockUser = {
-  greeting: 'Good afternoon 👋',
+  greeting: 'Welcome to Stampd',
   passportName: 'Your Seeker Passport',
-  stats: {
-    stamps: 12,
-    places: 3,
-    skrEarned: 40,
-  },
 } as const
 
 export const mockMerchants: LoyaltyMerchant[] = [
@@ -63,5 +58,15 @@ export function getSeekerCoffee(isDemoStampCollected: boolean): LoyaltyMerchant 
       ...seekerCoffee.stamps,
       current: isDemoStampCollected ? 5 : 4,
     },
+  }
+}
+
+export function getDemoPassportStats(isDemoStampCollected: boolean) {
+  const merchants = [getSeekerCoffee(isDemoStampCollected), pixelCards]
+
+  return {
+    stamps: merchants.reduce((total, merchant) => total + merchant.stamps.current, 0),
+    places: merchants.length,
+    eligibilityReady: merchants.filter((merchant) => merchant.stamps.current >= merchant.stamps.total).length,
   }
 }

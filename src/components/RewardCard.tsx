@@ -1,29 +1,35 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { LoyaltyMerchant } from '@/src/data/mockLoyalty'
 import { colors } from '@/src/theme/colors'
 
 type RewardCardProps = {
   merchant: LoyaltyMerchant
   ready?: boolean
+  onPress?: () => void
 }
 
-export function RewardCard({ merchant, ready = false }: RewardCardProps) {
+export function RewardCard({ merchant, ready = false, onPress }: RewardCardProps) {
   return (
-    <View style={styles.card}>
+    <Pressable
+      accessibilityHint={`Opens ${merchant.name} demo eligibility details`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
       <View style={styles.icon}>
         <Text style={styles.iconText}>✦</Text>
       </View>
       <View style={styles.copy}>
         <Text style={styles.name}>{merchant.name}</Text>
         <Text style={[styles.status, ready && styles.statusReady]}>
-          {ready ? 'Reward Ready' : 'Locked / Not Ready'}
+          {ready ? 'Eligibility Ready · Demo' : 'Eligibility Locked · Demo'}
         </Text>
       </View>
       <View style={styles.valueBlock}>
         <Text style={styles.value}>{merchant.reward.amount}</Text>
-        <Text style={styles.currency}>{merchant.reward.currency}</Text>
+        <Text style={styles.currency}>{merchant.reward.currency} TARGET</Text>
       </View>
-    </View>
+    </Pressable>
   )
 }
 
@@ -37,6 +43,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.992 }] },
   icon: {
     width: 46,
     height: 46,

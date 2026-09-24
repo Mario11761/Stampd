@@ -1,58 +1,237 @@
 # Stampd
 
-Your onchain loyalty passport, built for Seeker.
+**A Seeker-native loyalty passport.**
 
-Stampd is an Android-first Expo and React Native app. This initial milestone contains only the
-stable application shell and the branded landing screen. Wallet connection, QR scanning, Solana
-transactions, Seeker Genesis Token verification, and SKR rewards are intentionally not implemented.
+Stampd is an Android-first React Native app for the Solana Mobile ecosystem. A user connects a mobile wallet, Stampd checks for an official Seeker Genesis Token (SGT), the user proves current wallet control with a one-time Sign-In With Solana (SIWS) message, and the app derives a short-lived **Verified Seeker** session. That session frames a camera-based merchant loyalty demo with local stamps and clearly labeled demo reward eligibility.
 
-## Prerequisites
+## Problem
 
-- A supported Node.js LTS release
-- Android Studio with an Android SDK, platform tools, and an emulator (or a physical Android device)
-- A Java Development Kit compatible with the installed Android Gradle plugin
+Mobile loyalty programs are fragmented, easy to duplicate, and rarely portable. Merchants also need a way to recognize a real Seeker holder without taking custody of wallet secrets or asking the user to move funds.
 
-Run the Solana Mobile environment check after installing the Android tools:
+## Solution
 
-```bash
-npx --yes solana-mobile@latest doctor
+Stampd combines two independent facts for the connected address:
+
+1. Read-only detection of an official SGT.
+2. A fresh, five-minute proof that the user controls the current wallet session.
+
+Only when both facts are valid for the same address and session does Stampd display **Verified Seeker**. The user can then scan the strict demo QR payload, store a local stamp, and see local demo reward eligibility.
+
+## Why Seeker
+
+Seeker supplies the mobile wallet environment and the official SGT used for holder recognition. Stampd turns those primitives into a judge-friendly loyalty journey while keeping the wallet in control and keeping all current loyalty state explicitly local.
+
+## Core user flow
+
+1. Open Stampd and enter the passport.
+2. Connect a compatible Mobile Wallet Adapter wallet on `solana:devnet`.
+3. Stampd checks the connected address for an official SGT through a read-only mainnet verifier.
+4. The user explicitly signs a one-time SIWS identity message.
+5. `SGT Detected` + `Wallet Control Verified` derives `Verified Seeker` for the current session.
+6. The user scans the Seeker Coffee demo QR code.
+7. The final stamp is saved locally and demo reward eligibility becomes ready.
+
+## What is real
+
+- Solana Mobile Wallet Adapter authorization and public-address retrieval.
+- Public Stampd identity at `https://identity.stampdpass.com` with Android Digital Asset Links.
+- Read-only official SGT verification on Solana mainnet.
+- One-time SIWS challenge issuance, wallet message signing, server verification, replay protection, and five-minute expiry.
+- Address- and session-bound Verified Seeker derivation.
+- Camera permission handling, strict QR parsing, duplicate rejection, and local stamp persistence.
+- Real-device positive validation with an official SGT-holding Seed Vault wallet/account.
+
+## What is local/demo
+
+- Merchant and loyalty-program data.
+- Stamp history and the Seeker Coffee final demo stamp.
+- Summary statistics, derived from the visible local merchant programs.
+- SKR numbers, which are **demo reward targets**, not balances or owned assets.
+- Reward eligibility UI.
+
+## What is not implemented
+
+- Transaction signing or submission.
+- SOL, SPL-token, or SKR transfers.
+- SKR minting, claiming, redemption, or token approvals.
+- An onchain stamp database or merchant backend.
+- A production reward economy.
+
+## Official SGT verification
+
+The mobile app sends the connected public address to the dedicated SGT verifier. The verifier performs a read-only mainnet check against the official Token-2022 identifiers and returns a bounded result. This is not a transaction and does not require the wallet to sign anything.
+
+## Wallet Control and SIWS
+
+Wallet Control requests a one-time challenge from `https://auth.stampdpass.com`, asks the already connected wallet to sign the SIWS identity message, and sends the result to the verifier. A verified proof expires after five minutes, is bound to the exact address and session epoch, and is never persisted by the app.
+
+## Verified Seeker derivation
+
+`Verified Seeker = official SGT detected for the current address + unexpired SIWS proof for the same address and session.`
+
+The status is pure derived state. Disconnect, same-address reconnect, expiry, address changes, or app restart remove it fail-closed.
+
+## QR loyalty demo
+
+The scanner accepts only one versioned JSON shape with exact keys and values. It does not save photos, record audio, or upload images or camera frames. The accepted Seeker Coffee stamp is persisted with AsyncStorage and duplicate scans do not add another stamp.
+
+## Local persistence model
+
+Only the Stage 4 demo stamp is persistent. Wallet sessions, authorization credentials, SIWS proof, and Verified Seeker state remain memory-only. Local app data can be cleared from Android system settings before a demo; there is no production reset control.
+
+## Demo reward eligibility
+
+Reward screens show local progress and explicitly qualified SKR demo targets. **No real SKR claim or transfer is implemented.** Completing five local Seeker Coffee stamps changes only the local demo eligibility state.
+
+## Architecture overview
+
+```text
+Android app
+├─ Mobile Wallet Adapter → compatible wallet
+├─ identity.stampdpass.com → identity page, icon, Digital Asset Links
+├─ sgt.stampdpass.com → read-only SGT verifier → Helius/Solana mainnet
+├─ auth.stampdpass.com → SIWS challenge + verification
+└─ Camera + AsyncStorage → strict QR parsing + local loyalty state
 ```
 
-## Run the app
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for boundaries and data flow. The three Worker projects currently live beside, not inside, this versioned mobile repository; packaging them for a submission repository is intentionally deferred.
 
-The first Android launch creates the native project and installs the custom development client:
+## Mobile technology stack
+
+- Expo 57 and React Native 0.86
+- TypeScript and Expo Router
+- Solana Mobile Wallet Adapter 2.3.0
+- `@solana/web3.js` through the React Native compatibility package
+- Expo Camera with Android audio recording disabled
+- AsyncStorage for the single local demo stamp
+- EAS Build for Android APKs
+
+## Worker architecture
+
+- **Identity Worker:** serves the public root, Stampd icon, and exact-JSON Digital Asset Links response.
+- **SGT verifier Worker:** performs bounded, rate-limited, read-only mainnet verification with its server-side provider credential.
+- **Auth verifier Worker:** issues one-time SIWS challenges, stores replay state in a Durable Object, and verifies signed identity messages.
+
+No Worker grants rewards, moves funds, or receives wallet private material.
+
+## Security model
+
+Stampd is non-custodial. It never accesses seed phrases or private keys. Wallet authorization stays on Solana devnet. Official SGT status is checked read-only on Solana mainnet. Wallet Control uses a one-time SIWS identity message, not a transaction, and expires after five minutes. Stamps and reward eligibility are local demo state. This build does not transfer or claim SKR.
+
+More detail is in [docs/SECURITY.md](docs/SECURITY.md).
+
+## Network model
+
+| Boundary                | Network/scope                        | Behavior                                                   |
+| ----------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| Wallet authorization    | Solana devnet                        | Authorize and read the public address                      |
+| SGT verification        | Solana mainnet, read-only            | Check official SGT ownership for that address              |
+| Wallet Control          | SIWS identity scope `solana:mainnet` | Sign a one-time identity message; no transaction           |
+| Stamps and eligibility  | Local device                         | AsyncStorage demo state and derived UI                     |
+| Transactions and claims | Absent                               | No signing, submission, transfers, approvals, or SKR claim |
+
+## Run locally
+
+Prerequisites are Node.js LTS and an existing compatible Android development client or physical-device setup. Mobile Wallet Adapter native modules do not work in Expo Go.
 
 ```bash
-npm run android
-```
-
-For later launches, start the Expo development server:
-
-```bash
+npm ci
+npm run check
+npm run test:qr
+npm run doctor
 npm run dev
 ```
 
-Mobile Wallet Adapter uses native Android modules, so wallet work will use this custom development
-build rather than Expo Go when it is added in a later phase.
+Connect the installed development client to the Metro URL shown by Expo. Do not put private keys, seed phrases, Expo tokens, provider keys, or wallet credentials in this repository.
 
-## Project layout
+## EAS and Android builds
 
-```text
-app/                  Expo Router screens and navigation
-src/features/         Boundaries for future product modules
-src/theme/            Shared visual tokens
-assets/images/        App icon and splash assets
-app.json              Expo and Android application configuration
-index.js              Expo Router entry point
+- Android package: `com.stampd.app`
+- Development profile: `development` (custom development client APK)
+- Standalone internal profile: `identity-preview` (bundled JavaScript, no Metro required)
+
+The command for a future standalone internal APK is:
+
+```bash
+npx eas-cli@latest build --platform android --profile identity-preview
 ```
 
-## Quality checks
+Do not run a new build merely to follow this README; review and test source changes first.
+
+## Validated APKs
+
+### Historical Stage 5B.4 internal release-like APK
+
+- EAS Build ID: `6c175360-4cb3-4425-9d43-fce13999d3a0`
+- APK SHA-256: `1F26304D41DFF0AE173874C1D767EAACB466FEC0C777C5DA7F2FC8F6836B76A2`
+- Package: `com.stampd.app`
+- Validation: historical Stage 5B.4 checkpoint, `122/122` feature tests passed
+
+### Polished physical-test APK
+
+- EAS Build ID: `ad076376-9872-455b-b6c5-6441f8e699d2`
+- APK SHA-256: `A0396BA43455BA1C041925699174D46C5CF2658D01E2CF7D747D73F9703128E4`
+- Package: `com.stampd.app`
+- Mode: internal, release-like, bundled JavaScript, non-debuggable, no Metro requirement
+
+This polished physical-test APK contains Demo Readiness Batch 1 and Batch 1.1. It passed the pre-install artifact audit and the polished physical demo validation. It is an internal submission-candidate precursor, not a production-ready release.
+
+The final Submission Candidate APK has not been built yet. It has no Build ID or SHA-256, and neither value should be inferred from the historical or polished artifacts above.
+
+## Testing evidence
+
+The historical stable checkpoint passed **122/122 feature tests**: Stage 5B.4 (20), Stage 5B.3 (80), Stage 5A (9), and Stage 4 (13), plus TypeScript, ESLint, Prettier, Expo Doctor, and the MWA sensitive-log verifier.
+
+The current final Submission Candidate source tree passed **133/133 tests** before the final APK build: the 122 existing feature tests plus 11 Demo Truthfulness tests. This result describes source validation only; it does not claim that the not-yet-built final Submission Candidate APK exists. Current commands are:
 
 ```bash
 npm run check
-npm run doctor
-npm run android:prebuild
+npm run test:qr
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/demoTruthfulness.test.mjs
+git diff --check
 ```
 
-The generated `android/` directory is intentionally ignored. Expo can regenerate it from `app.json`
-and the installed native packages.
+## Real-device validation
+
+The polished internal APK passed the complete judge flow on a physical Android device. The clean state showed `6 Stamps`, `2 Places`, `0 Eligible Programs`, and Seeker Coffee at `4/5`. The device's Seed Vault wallet/account, shown only as `fMKR...UE5X`, passed wallet authorization, real official SGT detection, SIWS, Wallet Control Verified, and Verified Seeker. The QR flow then moved Seeker Coffee from `4/5` to `5/5`, displayed Demo Eligibility Unlocked, and retained the no-transfer/no-claim disclaimer.
+
+Solflare separately passed wallet authorization, SIWS, the no-SGT negative path, and fail-closed behavior. Solflare was not the real-SGT positive wallet. Phantom remains an open identity-interoperability blocker.
+
+The QR flow made no wallet or transaction call and introduced no Claim or Redeem action. Leaving Passport for Scan replaces and unmounts the Passport route, so its page-local wallet/SIWS state is discarded fail-closed. The disconnected UI seen after returning is not a security failure and is not presented as a production feature. Full wallet addresses and raw signatures were not captured.
+
+## Three-minute demo
+
+Use Seed Vault for the validated real-SGT positive path. Prepare Seeker Coffee at 4/5 with camera permission already granted, then demonstrate Connect → SGT Detected → Wallet Control Verified → Verified Seeker → Scan → Stamp Collected → Demo Eligibility Unlocked. Stop the primary live demo on Stamp Success. The exact preflight, stop conditions, and fallback policy are in [docs/DEMO.md](docs/DEMO.md).
+
+## Demo QR
+
+Display this exact compact JSON on a second device or printed QR code:
+
+```text
+{"v":1,"type":"stampd_demo_stamp","merchantId":"seeker-coffee","stampId":"seeker-coffee-demo-5"}
+```
+
+Do not scan it during camera-permission preparation, and do not substitute an unreviewed payload.
+
+## Known limitations
+
+- Stamp and reward data are local demo state, not an onchain or synchronized merchant ledger.
+- Real SKR claiming, transferring, redemption, and approvals do not exist.
+- The SGT and auth checks require network access; transient failures remain fail-closed.
+- A Solflare SIWS cancellation may appear as generic `Unable to Verify Wallet Control` when the wallet returns no primitive cancellation code.
+- Phantom has shown an unresolved identity-verification warning in some tests despite consistent package, certificate, App Link, DAL, and caller-chain evidence. Never authorize while that warning is visible.
+
+## Live-demo wallet recommendation
+
+Use the device's **Seed Vault** wallet/account with the real official SGT account preselected. It is the physically validated positive path. Solflare is validated for authorization, SIWS, and the no-SGT negative path only. Do not switch wallets mid-demo, expose sensitive association data, use Phantom as a delay workaround, or authorize through any identity warning.
+
+## Screenshots and video
+
+Planned screenshot locations and privacy rules are documented in [docs/screenshots/README.md](docs/screenshots/README.md). No screenshots or video are fabricated in this repository. Add a reviewed demo-video link here only after recording and privacy review.
+
+## More documentation
+
+- [Demo runbook](docs/DEMO.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security](docs/SECURITY.md)
+- [Feature boundaries](src/features/README.md)

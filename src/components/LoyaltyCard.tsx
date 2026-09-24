@@ -15,7 +15,7 @@ export function LoyaltyCard({ merchant, featured = false, onPress }: LoyaltyCard
 
   return (
     <Pressable
-      accessibilityHint={onPress ? `Opens ${merchant.name} reward details` : undefined}
+      accessibilityHint={onPress ? `Opens ${merchant.name} demo eligibility details` : undefined}
       accessibilityRole={onPress ? 'button' : undefined}
       disabled={!onPress}
       onPress={onPress}
@@ -45,9 +45,9 @@ export function LoyaltyCard({ merchant, featured = false, onPress }: LoyaltyCard
         <>
           <View style={styles.rewardRow}>
             <View>
-              <Text style={styles.rewardLabel}>REWARD</Text>
+              <Text style={styles.rewardLabel}>DEMO REWARD TARGET</Text>
               <Text style={styles.rewardValue}>
-                {merchant.reward.amount} {merchant.reward.currency}
+                {merchant.reward.amount} {merchant.reward.currency} target
               </Text>
             </View>
             <Text style={styles.percent}>{percent}%</Text>
@@ -58,7 +58,7 @@ export function LoyaltyCard({ merchant, featured = false, onPress }: LoyaltyCard
         </>
       ) : (
         <Text style={styles.unlockMessage}>
-          {remaining === 0 ? 'Reward Ready' : `${remaining} more stamps to unlock`}
+          {remaining === 0 ? 'Eligibility Ready · Demo' : `${remaining} more stamps for demo eligibility`}
         </Text>
       )}
     </Pressable>
