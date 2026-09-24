@@ -15,6 +15,9 @@
       "developmentClient": false,
       "distribution": "internal",
       "credentialsSource": "remote",
+      "env": {
+        "EXPO_PUBLIC_INTERNAL_IDENTITY_PREVIEW_ENABLED": "true"
+      },
       "android": {
         "buildType": "apk"
       }

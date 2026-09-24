@@ -209,14 +209,14 @@ test('SGT network failure remains address-bound and unable', async () => {
   assert.equal(derive({ sgtState: states.at(-1) }), false)
 })
 
-test('source keeps Verified Seeker derived, memory-only, DEV-gated, and non-transactional', async () => {
+test('source keeps Verified Seeker derived, memory-only, product-gated, and non-transactional', async () => {
   const walletSource = await readFile(new URL('../../wallet/WalletControl.tsx', import.meta.url), 'utf8')
   const selectorSource = await readFile(new URL('../../seeker/verifiedSeeker.ts', import.meta.url), 'utf8')
   const sgtSource = await readFile(new URL('../../seeker/sgtRequestController.ts', import.meta.url), 'utf8')
   const source = `${walletSource}\n${selectorSource}\n${sgtSource}`
 
   assert.match(walletSource, /const verifiedSeeker = isVerifiedSeeker\(/)
-  assert.match(walletSource, /__DEV__ && verifiedSeeker &&/)
+  assert.match(walletSource, /WALLET_CONTROL_PRODUCT_ENABLED && verifiedSeeker &&/)
   assert.match(walletSource, /AppState\.addEventListener\('change'/)
   assert.doesNotMatch(source, /useState\s*\(\s*(?:true|false)\s*\).*verifiedSeeker/i)
   assert.doesNotMatch(source, /AsyncStorage\.(?:setItem|multiSet)|SecureStore/)

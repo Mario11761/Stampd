@@ -11,6 +11,7 @@ import { isVerifiedSeeker } from '@/src/features/seeker/verifiedSeeker'
 import { colors } from '@/src/theme/colors'
 import { walletConfig } from './config'
 import { getWalletErrorMessage } from './errors'
+import { WALLET_CONTROL_PRODUCT_ENABLED } from './productGate'
 import { requestSiwsChallenge, SiwsApiError, verifySiwsResult } from './siwsApi'
 import { createSiwsAttemptController, type SiwsFlowState } from './siwsAttemptController'
 import { appendDiagnosticBreadcrumb, type SiwsDiagnosticBreadcrumb } from './siwsDiagnostics'
@@ -227,7 +228,7 @@ export function WalletControl() {
         </View>
         <Text style={styles.sessionHelp}>Disconnect ends this Stampd session.</Text>
         <SeekerStatusCard state={visibleSgtState} />
-        {__DEV__ && (
+        {WALLET_CONTROL_PRODUCT_ENABLED && (
           <WalletControlVerification
             diagnostics={devDiagnostics}
             onCancel={() => siwsController.current?.cancelSafety()}
@@ -237,10 +238,12 @@ export function WalletControl() {
             state={siwsState}
           />
         )}
-        {__DEV__ && verifiedSeeker && (
+        {WALLET_CONTROL_PRODUCT_ENABLED && verifiedSeeker && (
           <View accessibilityLiveRegion="polite" style={styles.verifiedSeekerCard}>
             <Text style={styles.verifiedSeekerTitle}>Verified Seeker</Text>
-            <Text style={styles.verifiedSeekerDetail}>SGT and wallet control match this address.</Text>
+            <Text style={styles.verifiedSeekerDetail}>
+              This connected address has an official Seeker Genesis Token and current wallet-control verification.
+            </Text>
           </View>
         )}
       </View>
@@ -424,21 +427,25 @@ function WalletControlVerification(props: {
       {props.proof !== null && props.state.status === 'verified' ? (
         <>
           <Text style={styles.verificationTitle}>Wallet Control Verified</Text>
-          <Text style={styles.verificationBody}>Your wallet-control signature was verified by Stampd.</Text>
+          <Text style={styles.verificationBody}>
+            This connected address is verified for this Stampd session. Verification expires in five minutes.
+          </Text>
         </>
       ) : (
         <>
           <Text style={styles.verificationTitle}>
-            {props.state.status === 'unable' ? 'Unable to Verify Wallet Control' : 'Ownership Verification Required'}
+            {props.state.status === 'unable' ? 'Unable to Verify Wallet Control' : 'Wallet Control Verification'}
           </Text>
           <Text style={styles.verificationBody}>
             {props.state.status === 'cancelled'
               ? 'Verification was cancelled. You can try again when ready.'
               : props.state.status === 'unable' && props.state.code === 'CHALLENGE_EXPIRED'
                 ? 'Verification expired. Please try again.'
-                : 'Development diagnostic · Wallet control only · No Seeker status is granted.'}
+                : props.state.status === 'unable'
+                  ? 'Stampd could not verify this request. No verification status was granted. You can try again.'
+                  : 'Sign a one-time message to confirm control of this connected address. This does not create or send a transaction.'}
           </Text>
-          {props.state.status === 'unable' && props.diagnostics.length > 0 && (
+          {__DEV__ && props.state.status === 'unable' && props.diagnostics.length > 0 && (
             <DevelopmentDiagnostics breadcrumbs={props.diagnostics} />
           )}
           <Pressable
@@ -465,7 +472,7 @@ function WalletControlVerification(props: {
             <Text style={styles.safetyTitle}>Verify Wallet Control</Text>
             <Text style={styles.safetyBody}>
               {
-                'Stampd will ask your wallet to sign a message confirming that you control this public address.\n\nThis is not a transaction.\nNo SOL, tokens, or SKR will be transferred.\nThere is no network fee.\n\nThe verification request expires in five minutes.'
+                "Stampd will ask your wallet to sign a one-time identity message.\n\nThis is not a transaction.\nNo SOL, tokens, or SKR will move.\nNo token approval will be requested.\nThere is no network fee.\nVerification expires in five minutes.\n\nSeeker status is checked read-only on Solana mainnet. Your wallet connection remains on devnet.\n\nIf Android asks, select the wallet already connected to Stampd. If your wallet says Stampd's identity cannot be verified, cancel."
               }
             </Text>
             <View style={styles.safetyActions}>
@@ -475,7 +482,7 @@ function WalletControlVerification(props: {
                 onPress={props.onContinue}
                 style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
               >
-                <Text style={styles.continueText}>Continue</Text>
+                <Text style={styles.continueText}>Continue to Wallet</Text>
               </Pressable>
               <Pressable
                 accessibilityHint="Closes this message without contacting the verification service or wallet"
