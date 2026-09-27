@@ -4,6 +4,19 @@
 
 Stampd is an Android-first React Native app for the Solana Mobile ecosystem. A user connects a mobile wallet, Stampd checks for an official Seeker Genesis Token (SGT), the user proves current wallet control with a one-time Sign-In With Solana (SIWS) message, and the app derives a short-lived **Verified Seeker** session. That session frames a camera-based merchant loyalty demo with local stamps and clearly labeled demo reward eligibility.
 
+## Final Submission Candidate
+
+- Source checkpoint: `a62c9dc8341218c00304f0f755a7511db6f13570`
+- Git tag: `submission-candidate-final-smoke-pass`
+- EAS Build ID: `76badfba-da31-45ee-9c58-8724e7c1682c`
+- APK SHA-256: `1B7192CB3F54E22DD1DF981CA86C96B17690C792498F7F4251446349BA2A219C`
+- Validation: **133/133 PASS**
+- Physical Seeker smoke: **PASS**
+
+The final physical Seeker test passed Seed Vault wallet authorization, real official SGT detection, SIWS Wallet Control verification, Verified Seeker derivation, and the exact demo QR scan. Seeker Coffee reached `5/5` and displayed **DEMO ELIGIBILITY UNLOCKED**. The displayed `20 SKR` is only a **DEMO REWARD TARGET**: no SKR was transferred or claimed, and Stampd contains no transaction or fund-moving capability.
+
+The annotated tag `submission-candidate-final-smoke-pass` points to the exact source commit used by the tested final APK. Any later documentation-only commit does not change that tested artifact or its provenance. This checkpoint is a hackathon submission candidate, not a production-readiness declaration.
+
 ## Problem
 
 Mobile loyalty programs are fragmented, easy to duplicate, and rarely portable. Merchants also need a way to recognize a real Seeker holder without taking custody of wallet secrets or asking the user to move funds.
@@ -160,6 +173,18 @@ Do not run a new build merely to follow this README; review and test source chan
 
 ## Validated APKs
 
+### Final Submission Candidate APK
+
+- Source commit: `a62c9dc8341218c00304f0f755a7511db6f13570`
+- Git tag: `submission-candidate-final-smoke-pass`
+- EAS Build ID: `76badfba-da31-45ee-9c58-8724e7c1682c`
+- APK SHA-256: `1B7192CB3F54E22DD1DF981CA86C96B17690C792498F7F4251446349BA2A219C`
+- Package: `com.stampd.app`
+- Validation: `133/133` tests passed
+- Physical Seeker smoke: passed on the final Submission Candidate
+
+This is the final tested hackathon artifact. It is not described as production-ready.
+
 ### Historical Stage 5B.4 internal release-like APK
 
 - EAS Build ID: `6c175360-4cb3-4425-9d43-fce13999d3a0`
@@ -176,13 +201,11 @@ Do not run a new build merely to follow this README; review and test source chan
 
 This polished physical-test APK contains Demo Readiness Batch 1 and Batch 1.1. It passed the pre-install artifact audit and the polished physical demo validation. It is an internal submission-candidate precursor, not a production-ready release.
 
-The final Submission Candidate APK has not been built yet. It has no Build ID or SHA-256, and neither value should be inferred from the historical or polished artifacts above.
-
 ## Testing evidence
 
 The historical stable checkpoint passed **122/122 feature tests**: Stage 5B.4 (20), Stage 5B.3 (80), Stage 5A (9), and Stage 4 (13), plus TypeScript, ESLint, Prettier, Expo Doctor, and the MWA sensitive-log verifier.
 
-The current final Submission Candidate source tree passed **133/133 tests** before the final APK build: the 122 existing feature tests plus 11 Demo Truthfulness tests. This result describes source validation only; it does not claim that the not-yet-built final Submission Candidate APK exists. Current commands are:
+The final Submission Candidate source tree passed **133/133 tests** before the final APK build: the 122 existing feature tests plus 11 Demo Truthfulness tests. The resulting final APK is identified above by its EAS Build ID and SHA-256. Current commands are:
 
 ```bash
 npm run check
@@ -193,7 +216,9 @@ git diff --check
 
 ## Real-device validation
 
-The polished internal APK passed the complete judge flow on a physical Android device. The clean state showed `6 Stamps`, `2 Places`, `0 Eligible Programs`, and Seeker Coffee at `4/5`. The device's Seed Vault wallet/account, shown only as `fMKR...UE5X`, passed wallet authorization, real official SGT detection, SIWS, Wallet Control Verified, and Verified Seeker. The QR flow then moved Seeker Coffee from `4/5` to `5/5`, displayed Demo Eligibility Unlocked, and retained the no-transfer/no-claim disclaimer.
+The final Submission Candidate APK passed the complete judge flow on a physical Seeker. The device's Seed Vault wallet/account passed wallet authorization, real official SGT detection, SIWS, Wallet Control Verified, and Verified Seeker. The exact demo QR produced Stamp Collected, moved Seeker Coffee to `5/5`, displayed Demo Eligibility Unlocked, and retained the explicit statement that `20 SKR` is only a demo reward target and that no SKR was transferred or claimed. Testing stopped on Stamp Success. No transaction, transfer, approval, claim, or fund movement occurred.
+
+The earlier polished internal APK also passed its physical demo validation from the clean state of `6 Stamps`, `2 Places`, `0 Eligible Programs`, and Seeker Coffee at `4/5`. It remains precursor evidence and is not the final submission artifact.
 
 Solflare separately passed wallet authorization, SIWS, the no-SGT negative path, and fail-closed behavior. Solflare was not the real-SGT positive wallet. Phantom remains an open identity-interoperability blocker.
 
