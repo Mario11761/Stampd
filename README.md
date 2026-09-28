@@ -1,8 +1,41 @@
 # Stampd
 
-**A Seeker-native loyalty passport.**
+### A Seeker-native loyalty passport.
 
-Stampd is an Android-first React Native app for the Solana Mobile ecosystem. A user connects a mobile wallet, Stampd checks for an official Seeker Genesis Token (SGT), the user proves current wallet control with a one-time Sign-In With Solana (SIWS) message, and the app derives a short-lived **Verified Seeker** session. That session frames a camera-based merchant loyalty demo with local stamps and clearly labeled demo reward eligibility.
+**Verify with SGT. Build loyalty with Stampd. Reward with SKR.**
+
+Stampd turns real-world merchant visits into a Seeker-native loyalty experience built for Solana Mobile.
+
+A user connects a compatible mobile wallet, Stampd checks for an official **Seeker Genesis Token (SGT)**, and the user proves current wallet control through a one-time **Sign-In With Solana (SIWS)** message.
+
+When both checks are valid for the same address and session, Stampd derives a short-lived **Verified Seeker** session.
+
+From there, users can visit participating merchants, scan loyalty QR codes, collect stamps, complete programs, and unlock clearly labeled **SKR-based demo reward eligibility**.
+
+> The current hackathon build does not transfer or claim SKR. SKR amounts shown in the app are explicitly labeled **DEMO REWARD TARGETS**.
+
+## Product flow
+
+```text
+Connect Wallet
+      ↓
+Official SGT Detected
+      ↓
+Verify Wallet Control with SIWS
+      ↓
+Verified Seeker
+      ↓
+Visit Merchant
+      ↓
+Scan QR
+      ↓
+Collect Stamp
+      ↓
+4/5 → 5/5
+      ↓
+Demo Reward Eligibility
+      ↓
+20 SKR Demo Reward Target
 
 ## Final Submission Candidate
 
