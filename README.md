@@ -37,6 +37,107 @@ Demo Reward Eligibility
       ↓
 20 SKR Demo Reward Target
 
+```
+
+## See Stampd in action
+
+<table>
+<tr>
+<td width="33%" align="center">
+<img src="docs/screenshots/verified-seeker.jpg" alt="Stampd Verified Seeker" />
+<br />
+<b>1. Verify the Seeker</b>
+<br />
+Official SGT + current wallet control.
+</td>
+
+<td width="33%" align="center">
+<img src="docs/screenshots/passport-4-of-5.jpg" alt="Stampd loyalty passport at 4 of 5 stamps" />
+<br />
+<b>2. Build loyalty</b>
+<br />
+A merchant program one visit away from completion.
+</td>
+
+<td width="33%" align="center">
+<img src="docs/screenshots/stamp-success.jpg" alt="Stampd stamp success and demo reward eligibility" />
+<br />
+<b>3. Unlock eligibility</b>
+<br />
+5/5 stamps and an SKR-denominated demo reward target.
+</td>
+</tr>
+</table>
+
+## Why Stampd?
+
+Traditional loyalty programs are usually isolated inside individual merchants.
+
+Stampd explores a Seeker-native loyalty model built around three layers:
+
+**SGT → Identity**
+
+**Stampd → Loyalty**
+
+**SKR → Reward Layer**
+
+The app combines Mobile Wallet Adapter, official SGT holder recognition, SIWS wallet-control proof, camera-based merchant QR scanning, and a clear loyalty progression into one Android-first experience.
+
+## Why users come back
+
+Stampd is designed around repeat merchant visits rather than a one-time wallet interaction.
+
+```text
+Visit
+  ↓
+Collect Stamp
+  ↓
+Progress is saved
+  ↓
+Return to Merchant
+  ↓
+Complete the Program
+  ↓
+Unlock Reward Eligibility
+```
+
+For the validated Seeker Coffee flow, the final demo step starts at **4/5 stamps**.
+
+One additional approved QR scan moves the program to:
+
+**5/5 → DEMO ELIGIBILITY UNLOCKED**
+
+This creates a simple repeat-visit loop for users while giving merchants a loyalty experience designed specifically around Seeker.
+
+## Built for Solana Mobile
+
+- ✅ Solana Mobile Wallet Adapter
+- ✅ Official SGT mainnet read-only verification
+- ✅ One-time SIWS wallet-control verification
+- ✅ Address- and session-bound Verified Seeker derivation
+- ✅ Five-minute wallet-control proof expiry
+- ✅ Camera-based merchant QR scanning
+- ✅ Strict QR payload validation
+- ✅ Duplicate stamp rejection
+- ✅ Local loyalty persistence
+- ✅ Seed Vault real-device validation
+- ✅ 133 / 133 tests PASS
+- ✅ Physical Seeker smoke test PASS
+
+Stampd is non-custodial and does not request seed phrases or private keys.
+
+The current build does not implement transaction signing, SKR transfers, token approvals, redemption, or claiming.
+
+## Demo video
+
+**Demo video:** Coming soon
+
+Validated judge flow:
+
+**Seed Vault → SGT Detected → Wallet Control Verified → Verified Seeker → Scan → Stamp Collected → 5/5 → Demo Eligibility Unlocked**
+
+---
+
 ## Final Submission Candidate
 
 - Source checkpoint: `a62c9dc8341218c00304f0f755a7511db6f13570`
