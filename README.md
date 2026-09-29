@@ -128,7 +128,7 @@ Stampd is non-custodial and does not request seed phrases or private keys.
 
 The current build does not implement transaction signing, SKR transfers, token approvals, redemption, or claiming.
 
-## Demo video
+**Demo video:** https://youtube.com/shorts/eglwrmva1y0?feature=share
 
 **Demo video:** Coming soon
 
