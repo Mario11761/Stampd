@@ -130,7 +130,7 @@ The current build does not implement transaction signing, SKR transfers, token a
 
 **Demo video:** https://youtube.com/shorts/eglwrmva1y0?feature=share
 
-**Demo video:** Coming soon
+
 
 Validated judge flow:
 
