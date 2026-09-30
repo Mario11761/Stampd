@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stampd-auth-verifier",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-19",
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "auth.stampdpass.com",
+      "custom_domain": true,
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SIWS_CHALLENGES",
+        "class_name": "SiwsChallengeObject",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SiwsChallengeObject"],
+    },
+  ],
+  "ratelimits": [
+    {
+      "name": "SIWS_RATE_LIMITER",
+      "namespace_id": "519002",
+      "simple": {
+        "limit": 10,
+        "period": 60,
+      },
+    },
+  ],
+}

@@ -241,7 +241,7 @@ Android app
 └─ Camera + AsyncStorage → strict QR parsing + local loyalty state
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for boundaries and data flow. The three Worker projects currently live beside, not inside, this versioned mobile repository; packaging them for a submission repository is intentionally deferred.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for boundaries and data flow. The three Worker source projects are included in this repository under `workers/identity`, `workers/sgt-verifier`, and `workers/auth-verifier`. Runtime credentials remain deployment secrets and are not committed to source control.
 
 ## Mobile technology stack
 
